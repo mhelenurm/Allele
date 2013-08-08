@@ -28,10 +28,16 @@ public class Application {
 	 * @param args The arguments to the application.
 	 */
 	public static void main(String[] args) {
+		System.setProperty("apple.laf.useScreenMenuBar", "true");
+		System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Allele Simulation");
+
 		final AlleleFrame mainFrame = new AlleleFrame();
+		
 		EventQueue.invokeLater(new Runnable() {
 			@Override
 			public void run() {
+				
+
 				mainFrame.setVisible(true);
 			}
 		});

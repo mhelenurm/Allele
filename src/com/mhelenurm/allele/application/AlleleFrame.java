@@ -10,13 +10,16 @@
  */
 package com.mhelenurm.allele.application;
 
+import com.mhelenurm.allele.model.CSVExport;
 import com.mhelenurm.allele.model.DataPoint;
+import com.mhelenurm.allele.model.OutputUtil;
 import com.mhelenurm.allele.model.Population;
 import com.mhelenurm.allele.model.RunType;
 import com.mhelenurm.gui.MHBubble;
 import com.mhelenurm.gui.MHGraph;
 import com.mhelenurm.gui.MHHistogram;
 import com.mhelenurm.gui.MHRangedField;
+import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -25,6 +28,9 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.Timer;
 
 /**
@@ -44,7 +50,6 @@ public class AlleleFrame extends JFrame implements ActionListener {
 	private static final int multiRunDelay = 20;
 	private static int multiRunCount = 100;
 	private static final long serialVersionUID = 1L;
-
 	private final int initialFrameWidth = 900;
 	private final int initialFrameHeight = 621;
 	private int multiRunGenCount = 0;
@@ -72,6 +77,8 @@ public class AlleleFrame extends JFrame implements ActionListener {
 	private boolean inRun;
 	private JButton runButton;
 	private char currentDataFlavor;
+	private JMenuBar defaultMenuBar;
+	private JMenu exportMenu;
 
 	/**
 	 * Initializes AlleleFrame.
@@ -86,6 +93,11 @@ public class AlleleFrame extends JFrame implements ActionListener {
 		setLocation(tk.getScreenSize().width / 2 - initialFrameWidth / 2, tk.getScreenSize().height / 2 - initialFrameHeight / 2);
 		getContentPane().setLayout(null);
 
+		defaultMenuBar = new JMenuBar();
+		setJMenuBar(defaultMenuBar);
+		exportMenu = new JMenu("Export");
+		defaultMenuBar.add(exportMenu);
+
 		runningMode = RunType.SINGLE_RUN;
 		inRun = false;
 
@@ -99,6 +111,7 @@ public class AlleleFrame extends JFrame implements ActionListener {
 		multiRunHist.setLowerBoundSeparate(true);
 		multiRunHist.setSize(600, 300);
 		multiRunHist.setLocation(300, 0);
+		getContentPane().add(multiRunHist);
 
 		singleRunHetGraph = new MHGraph(MHGraph.GRAPH_LINE, 0, singleRunGenerationCount, 0, 0.5, 5, 10, "Generation", "Heterozygosity", "Heterozygosity Over Time");
 		singleRunHetGraph.setSize(600, 300);
@@ -109,11 +122,13 @@ public class AlleleFrame extends JFrame implements ActionListener {
 		multiRunHetHist.setLowerBoundSeparate(true);
 		multiRunHetHist.setSize(600, 300);
 		multiRunHetHist.setLocation(300, 300);
+		getContentPane().add(multiRunHetHist);
 
 		multiRunCtLabel = new JLabel("Number of Runs: 0");
 		multiRunCtLabel.setSize(280, 50);
 		multiRunCtLabel.setLocation(10, 10);
 		multiRunCtLabel.setHorizontalTextPosition(JLabel.CENTER);
+		getContentPane().add(multiRunCtLabel);
 
 		singleRunBubble = new MHBubble(.5, "Allele Frequency");
 		singleRunBubble.setSize(210, 210);
@@ -217,8 +232,51 @@ public class AlleleFrame extends JFrame implements ActionListener {
 				repaint();
 			}
 		});
+		Component[] comps = this.getContentPane().getComponents();
+		for (final Component c : comps) {
+			if (c instanceof CSVExport) {
+				JMenuItem exportable = new JMenuItem(new StringBuilder("CSV ").append(((CSVExport) c).getExportName()).toString());
+				exportable.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						OutputUtil.writeToFile(((CSVExport) c).exportCSV().toString());
+					}
+				});
+				exportMenu.add(exportable);
+			}
+		}
+		setGUI(RunType.SINGLE_RUN);
+	}
+
+	private void setGUI(RunType mode) {
+		boolean single = true;
+		if (mode != RunType.SINGLE_RUN) {
+			single = false;
+		}
+
+		singleRunGraph.setVisible(single);
+		singleRunHetGraph.setVisible(single);
+		singleRunBubble.setVisible(single);
+		multiRunHist.setVisible(!single);
+		multiRunHetHist.setVisible(!single);
+		multiRunCtLabel.setVisible(!single);
+
+		//if multi run, hide single-run shit
+		for (Component c : exportMenu.getMenuComponents()) { //for each menu item, check if it should be shown
+			Component[] comps = this.getContentPane().getComponents();
+			for (Component cc : comps) {
+				if (cc instanceof CSVExport) { //for each exportable item
+					//if c corresponds to cc
+					if (((JMenuItem) c).getText().contains(((CSVExport) cc).getExportName())) {
+						((JMenuItem) c).setEnabled(cc.isVisible());
+					}
+				}
+			}
+		}
 
 
+		repaint();
+		runningMode = mode;
 	}
 
 	/**
@@ -235,35 +293,13 @@ public class AlleleFrame extends JFrame implements ActionListener {
 				inRun = false;
 			}
 			if (runTypeComboBox.getSelectedIndex() == 0) {
-				if (runningMode == RunType.SINGLE_RUN) {
-					return;
+				if (runningMode != RunType.SINGLE_RUN) {
+					setGUI(RunType.SINGLE_RUN);
 				}
-				//remove all multi run components, add all single run ones
-				getContentPane().add(singleRunGraph);
-				getContentPane().add(singleRunHetGraph);
-				getContentPane().add(singleRunBubble);
-
-				getContentPane().remove(multiRunHist);
-				getContentPane().remove(multiRunHetHist);
-				getContentPane().remove(multiRunCtLabel);
-
-				repaint();
-				runningMode = RunType.SINGLE_RUN;
 			} else {
-				if (runningMode == RunType.MULTI_RUN) {
-					return;
+				if (runningMode != RunType.MULTI_RUN) {
+					setGUI(RunType.MULTI_RUN);
 				}
-				//remove all single run components, add all multi run ones
-				getContentPane().remove(singleRunGraph);
-				getContentPane().remove(singleRunHetGraph);
-				getContentPane().remove(singleRunBubble);
-
-				getContentPane().add(multiRunHist);
-				getContentPane().add(multiRunHetHist);
-				getContentPane().add(multiRunCtLabel);
-
-				repaint();
-				runningMode = RunType.MULTI_RUN;
 			}
 			return;
 		}

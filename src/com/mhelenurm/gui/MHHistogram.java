@@ -10,6 +10,7 @@
  */
 package com.mhelenurm.gui;
 
+import com.mhelenurm.allele.model.CSVExport;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -23,7 +24,7 @@ import javax.swing.JPanel;
  * @version 1.0
  * @since Jun 24, 2013
  */
-public class MHHistogram extends JPanel {
+public class MHHistogram extends JPanel implements CSVExport {
 
 	private static final long serialVersionUID = 31415679000L;
 	private static final Logger LOG = Logger.getLogger(MHHistogram.class.getName());
@@ -349,5 +350,32 @@ public class MHHistogram extends JPanel {
 			counts[i] = 0;
 		}
 		total = 0;
+	}
+
+	@Override
+	public StringBuilder exportCSV() {
+		StringBuilder ss = new StringBuilder((divisions * 5));
+		final StringBuilder ln = new StringBuilder("\n");
+		ss.append(axisTitle).append(",").append("hits").append(ln);
+		for (int i = 0; i < divisions; i++) {
+			int seps = ((lowerBoundSeparate) ? 1 : 0) + ((upperBoundSeparate) ? 1 : 0);
+			double lowerbound = minamount + (maxamount - minamount) * ((double) (i + ((lowerBoundSeparate) ? -1 : 0)) / (double) (divisions - seps));
+			double upperbound = minamount + (maxamount - minamount) * ((double) (i + 1 + ((lowerBoundSeparate) ? -1 : 0)) / (double) (divisions - seps));
+
+			if (i == 0 && lowerBoundSeparate) {
+				ss.append(minamount);
+			} else if (i == divisions - 1 && upperBoundSeparate) {
+				ss.append(maxamount);
+			} else {
+				ss.append(lowerbound).append(" - ").append(upperbound);
+			}
+			ss.append(",").append(counts[i]).append(ln);
+		}
+		return ss;
+	}
+
+	@Override
+	public String getExportName() {
+		return graphTitle;
 	}
 }

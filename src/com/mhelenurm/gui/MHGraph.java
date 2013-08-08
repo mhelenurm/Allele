@@ -10,6 +10,7 @@
  */
 package com.mhelenurm.gui;
 
+import com.mhelenurm.allele.model.CSVExport;
 import com.mhelenurm.allele.model.DataPoint;
 import java.awt.Color;
 import java.awt.Font;
@@ -26,7 +27,7 @@ import javax.swing.JPanel;
  * @version 1.0
  * @since Jun 24, 2013
  */
-public class MHGraph extends JPanel {
+public class MHGraph extends JPanel implements CSVExport {
 
 	private static final long serialVersionUID = 31415678999L;
 	/**
@@ -42,13 +43,14 @@ public class MHGraph extends JPanel {
 	private double ymin, ymax;
 	private int xdivisions, ydivisions;
 	private String xtitle, ytitle;
-	private String graphtitle;
+	private String graphTitle;
 	private int mode;
 	private ArrayList<DataPoint> datapoints;
 	private final Color[] COLORS = new Color[]{Color.BLACK, Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW.darker().darker(), Color.ORANGE, Color.GRAY, Color.CYAN, Color.MAGENTA, Color.PINK};
 
-	private MHGraph() {}
-	
+	private MHGraph() {
+	}
+
 	/**
 	 * Initializes MHGraph
 	 *
@@ -61,7 +63,7 @@ public class MHGraph extends JPanel {
 	 * @param ydivisions The number of y divisions.
 	 * @param xtitle The title of the x axis.
 	 * @param ytitle The title of the y axis.
-	 * @param graphtitle The title of the graph.
+	 * @param graphTitle The title of the graph.
 	 * @param points The initial points data.
 	 */
 	public MHGraph(int mode, double xmin, double xmax, double ymin, double ymax, int xdivisions, int ydivisions, String xtitle, String ytitle, String graphtitle, DataPoint points[]) {
@@ -74,7 +76,7 @@ public class MHGraph extends JPanel {
 		this.ydivisions = ydivisions;
 		this.xtitle = xtitle;
 		this.ytitle = ytitle;
-		this.graphtitle = graphtitle;
+		this.graphTitle = graphtitle;
 
 		datapoints = new ArrayList<DataPoint>((points.length == 0) ? points.length : 10);
 		datapoints.addAll(Arrays.asList(points));
@@ -92,7 +94,7 @@ public class MHGraph extends JPanel {
 	 * @param ydivisions The number of y divisions.
 	 * @param xtitle The title of the x axis.
 	 * @param ytitle The title of the y axis.
-	 * @param graphtitle The title of the graph.
+	 * @param graphTitle The title of the graph.
 	 */
 	public MHGraph(int mode, double xmin, double xmax, double ymin, double ymax, int xdivisions, int ydivisions, String xtitle, String ytitle, String graphtitle) {
 		this(mode, xmin, xmax, ymin, ymax, xdivisions, ydivisions, xtitle, ytitle, graphtitle, new DataPoint[]{});
@@ -297,16 +299,16 @@ public class MHGraph extends JPanel {
 	 * @return The graph title.
 	 */
 	public String getGraphtitle() {
-		return graphtitle;
+		return graphTitle;
 	}
 
 	/**
 	 * Sets the graph title.
 	 *
-	 * @param graphtitle The graph title.
+	 * @param graphTitle The graph title.
 	 */
 	public void setGraphtitle(String graphtitle) {
-		this.graphtitle = graphtitle;
+		this.graphTitle = graphtitle;
 	}
 
 	/**
@@ -366,7 +368,7 @@ public class MHGraph extends JPanel {
 
 		g.setFont(new Font(g.getFont().getName(), Font.BOLD, g.getFont().getSize() + 3));
 
-		g.drawString(graphtitle, getWidth() / 2 - g.getFontMetrics().stringWidth(graphtitle) / 2, (int) (marginy - g.getFontMetrics().getAscent()));
+		g.drawString(graphTitle, getWidth() / 2 - g.getFontMetrics().stringWidth(graphTitle) / 2, (int) (marginy - g.getFontMetrics().getAscent()));
 		g.setFont(new Font(g.getFont().getName(), Font.PLAIN, g.getFont().getSize() - 3));
 		g.drawString(xtitle, getWidth() / 2 - g.getFontMetrics().stringWidth(xtitle) / 2, (int) (getHeight() * .975));
 		g.drawString(ytitle, (int) (marginx - g.getFontMetrics().stringWidth(ytitle) / 2), (int) (marginy - g.getFontMetrics().getHeight()));
@@ -430,5 +432,35 @@ public class MHGraph extends JPanel {
 				}
 			}
 		}
+	}
+
+	@Override
+	public String getExportName() {
+		return graphTitle;
+	}
+
+	@Override
+	public StringBuilder exportCSV() {
+		StringBuilder ss = new StringBuilder(1024);
+		final StringBuilder ln = new StringBuilder("\n");
+		for (int i = 0; i < 10; i++) {
+			StringBuilder linex = new StringBuilder(128);
+			StringBuilder liney = new StringBuilder(128);
+			linex.append("type ").append(i).append(" x");
+			liney.append("type ").append(i).append(" y");
+			boolean hasData = false;
+			for (DataPoint p : datapoints) {
+				if (p.getId() == i) {
+					hasData = true;
+					linex.append(",").append(p.getX());
+					liney.append(",").append(p.getY());
+				}
+			}
+			if (hasData) {
+				ss.append(linex).append(ln);
+				ss.append(liney).append(ln);
+			}
+		}
+		return ss;
 	}
 }
